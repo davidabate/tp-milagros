@@ -1,0 +1,191 @@
+Explicación del Código de `script.js`
+
+Este archivo contiene toda la lógica para que el juego de Wordle funcione. A continuación se detalla cada parte del código.
+
+---
+
+### **1. Inicialización y Constantes Globales**
+
+Estas son las variables que se definen al inicio y que son accesibles desde cualquier parte del script.
+
+```javascript
+const palabras = ["perro", "carta", "flaco", "plaza", "noche", "casas", "banco", "verde"];
+```
+- **`palabras`**: Un array (lista) que contiene todas las palabras posibles que el jugador puede adivinar. El juego elegirá una de estas al azar.
+
+```javascript
+const palabraSecreta = palabras[Math.floor(Math.random() * palabras.length)];
+```
+- **`palabraSecreta`**: Aquí se elige la palabra que el jugador debe adivinar.
+    - `Math.random()`: Genera un número decimal aleatorio entre 0 y 1.
+    - `Math.random() * palabras.length`: Multiplica el número aleatorio por la cantidad de palabras en la lista.
+    - `Math.floor(...)`: Redondea el resultado hacia abajo para obtener un índice válido para el array `palabras`.
+    - `palabras[...]`: Selecciona la palabra en el índice aleatorio.
+
+```javascript
+const maxIntentos = 6;
+let intentos = 0;
+```
+- **`maxIntentos`**: Una constante que define el número máximo de intentos que tiene el jugador (6).
+- **`intentos`**: Una variable que cuenta cuántos intentos ha realizado el jugador. Se inicializa en 0.
+
+---
+
+### **2. Selección de Elementos del DOM**
+
+Aquí se obtienen las referencias a los elementos del archivo HTML para poder manipularlos con JavaScript.
+
+```javascript
+const tablero = document.querySelector(".tablero");
+const mensaje = document.querySelector(".mensaje");
+const entrada = document.querySelector(".entrada");
+const teclado = document.querySelector(".teclado");
+```
+- **`document.querySelector(".nombreDeClase")`**: Este método busca en el `index.html` el primer elemento que tenga la clase especificada y lo guarda en una constante.
+    - **`tablero`**: El contenedor donde se mostrarán las letras.
+    - **`mensaje`**: El párrafo donde se mostrarán mensajes al usuario (ej. "¡Ganaste!").
+    - **`entrada`**: El campo de texto donde el usuario escribe la palabra.
+    - **`teclado`**: El contenedor para el teclado virtual.
+
+---
+
+### **3. Creación del Tablero y Teclado**
+
+Estos bucles se ejecutan una sola vez al cargar la página para generar la interfaz del juego.
+
+**Crear el tablero vacío:**
+```javascript
+for (let i = 0; i < maxIntentos * 5; i++) {
+  const div = document.createElement("div");
+  div.classList.add("letra");
+  tablero.appendChild(div);
+}
+```
+- Este bucle `for` crea las 30 casillas del tablero (6 intentos x 5 letras).
+    - `document.createElement("div")`: Crea un nuevo elemento `<div>`.
+    - `div.classList.add("letra")`: Le añade la clase "letra" para que tenga el estilo definido en `style.css`.
+    - `tablero.appendChild(div)`: Añade la nueva casilla `<div>` dentro del contenedor del tablero.
+
+**Crear el teclado con el abecedario:**
+```javascript
+const letras = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
+for (let letra of letras) {
+  const btn = document.createElement("button");
+  btn.textContent = letra;
+  btn.classList.add("tecla");
+  teclado.appendChild(btn);
+}
+```
+- Este bucle `for...of` recorre cada letra del string `letras`.
+    - `document.createElement("button")`: Crea un nuevo botón.
+    - `btn.textContent = letra`: Asigna la letra actual como texto del botón.
+    - `btn.classList.add("tecla")`: Le añade la clase "tecla" para su estilo.
+    - `teclado.appendChild(btn)`: Añade el botón al contenedor del teclado.
+
+---
+
+### **4. Función `actualizarTeclado`**
+
+Esta función cambia el color de las teclas del teclado virtual según si la letra es correcta, está presente o es incorrecta.
+
+```javascript
+function actualizarTeclado(letra, estado) {
+  const botones = document.querySelectorAll(".tecla");
+  botones.forEach(boton => {
+    if (boton.textContent === letra.toUpperCase()) {
+      boton.classList.remove("correcta", "presente", "incorrecta");
+      boton.classList.add(estado);
+    }
+  });
+}
+```
+- **`function actualizarTeclado(letra, estado)`**: Define una función que recibe una `letra` y un `estado` (ej. "correcta").
+- **`document.querySelectorAll(".tecla")`**: Selecciona todos los botones del teclado.
+- **`botones.forEach(...)`**: Recorre cada botón del teclado.
+- **`if (boton.textContent === letra.toUpperCase())`**: Comprueba si el texto del botón coincide con la letra del intento.
+- **`boton.classList.remove(...)`**: Limpia cualquier clase de estado anterior.
+- **`boton.classList.add(estado)`**: Añade la nueva clase de estado (`correcta`, `presente` o `incorrecta`) para cambiar su color.
+
+---
+
+### **5. Lógica Principal del Juego (Evento `click`)**
+
+Este es el corazón del juego. Se ejecuta cada vez que el usuario hace clic en el botón "Probar".
+
+```javascript
+document.querySelector(".boton").addEventListener("click", () => {
+  // ...código del juego...
+});
+```
+- **`document.querySelector(".boton")`**: Selecciona el botón "Probar".
+- **`.addEventListener("click", () => { ... })`**: Asigna una función que se ejecutará cuando se haga clic en el botón.
+
+**Dentro del evento:**
+
+1.  **Obtener y validar el intento:**
+    ```javascript
+    const intento = entrada.value.toLowerCase();
+
+    if (intento.length !== 5) {
+      mensaje.textContent = "La palabra debe tener 5 letras.";
+      return;
+    }
+    if (!palabras.includes(intento)) {
+      mensaje.textContent = "La palabra no está en la lista.";
+      return;
+    }
+    ```
+    - Se obtiene el valor del campo de texto, se convierte a minúsculas.
+    - Se comprueba si la palabra tiene 5 letras. Si no, muestra un mensaje y detiene la ejecución con `return`.
+    - Se comprueba si la palabra introducida existe en la lista `palabras`. Si no, muestra un mensaje y se detiene.
+
+2.  **Procesar el intento:**
+    ```javascript
+    mensaje.textContent = "";
+    const letrasCeldas = document.querySelectorAll(".letra");
+    let posicion = intentos * 5;
+
+    for (let i = 0; i < 5; i++) {
+      const celda = letrasCeldas[posicion + i];
+      celda.textContent = intento[i];
+      if (intento[i] === palabraSecreta[i]) {
+        celda.classList.add("correcta");
+        actualizarTeclado(intento[i], "correcta");
+      } else if (palabraSecreta.includes(intento[i])) {
+        celda.classList.add("presente");
+        actualizarTeclado(intento[i], "presente");
+      } else {
+        celda.classList.add("incorrecta");
+        actualizarTeclado(intento[i], "incorrecta");
+      }
+    }
+    ```
+    - Se limpia cualquier mensaje anterior.
+    - Se calcula la `posicion` inicial para la fila actual en el tablero.
+    - El bucle `for` recorre cada letra de la palabra intentada:
+        - Selecciona la `celda` correcta en el tablero.
+        - Pone la letra en la celda.
+        - Compara la letra con la `palabraSecreta` y añade la clase CSS correspondiente (`correcta`, `presente` o `incorrecta`) a la celda y al teclado.
+
+3.  **Actualizar estado del juego:**
+    ```javascript
+    intentos++;
+
+    if (intento === palabraSecreta) {
+      mensaje.textContent = "¡Felicidades! Adivinaste la palabra.";
+      entrada.disabled = true;
+      return;
+    }
+
+    if (intentos === maxIntentos) {
+      mensaje.textContent = "Perdiste 😞. La palabra era: " + palabraSecreta.toUpperCase();
+      entrada.disabled = true;
+    }
+
+    entrada.value = "";
+    entrada.focus();
+    ```
+    - **`intentos++`**: Incrementa el contador de intentos.
+    - **Comprobación de victoria**: Si el `intento` es igual a la `palabraSecreta`, muestra un mensaje de felicitación y deshabilita el campo de texto.
+    - **Comprobación de derrota**: Si se alcanza el `maxIntentos`, muestra un mensaje de derrota con la palabra correcta y deshabilita el campo de texto.
+    - **Limpieza para el siguiente turno**: Limpia el campo de texto (`entrada.value = ""`) y lo vuelve a enfocar (`entrada.focus()`) para que el usuario pueda escribir el siguiente intento cómodamente.
